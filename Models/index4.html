@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Testy</title>
+    <script src="three.js"></script>
+    <script src="MyLight.js"></script>
+    <style>
+        #mainDiv {
+            position:fixed;
+        }
+        *, body {
+            overflow: hidden;
+            margin: 0;
+        }
+        .lewy {
+            position: fixed;top:0; left: 0; width: 200px; background-color: rgb(0, 255, 33); min-height: 600px; z-index: 1000000;
+        }
+        .suwak {
+            position: relative;
+           right: 0px;
+
+            z-index: 1000;
+            min-width: 200px;
+            min-height: 20px;
+            z-index: 10000000;
+            
+        }
+        .suwak > div {
+            position: absolute;
+            color: white;
+            background-color: black;
+            
+        }
+            </style>
+    <script>
+        var materialek = '';
+        var matel = new THREE.MeshPhongMaterial({wireframe: true, color: 0xffffff})
+
+        var clock = new THREE.Clock();
+        window.addEventListener("load", function () {
+            load_funkcja();
+        });
+        function load_funkcja() {
+            var tblKlon = [];
+            var camNew = false;
+            var matNew = "";
+            var light = "";
+            var obj = new Object();
+            var tablica = [];
+            var klawisz = 0;
+            var liczKl = 0;
+            var tablicaKlon = [];
+            var meshModel = "";
+            var mesh = "";
+            var tab = new Array(0, 0, 0, 0,0,0,0,0);
+            var scene = new THREE.Scene();
+            var moving = false;
+            var camera1 = "";
+            var camera2 = "";
+            var pozXClick = 0;
+            var pozYClick = 0;
+            var rect = null;
+            var el = null;
+            document.body.addEventListener("mouseup", function () {
+                moving = false;
+            })
+            for (var i = 0; i < document.getElementsByClassName("suwak").length; i++)
+            {
+                document.getElementsByClassName("suwak")[i].parentNode.addEventListener("mousemove", parentMove, false);
+                console.log(document.getElementsByClassName("suwak")[i].lastChild);
+                document.getElementsByClassName("suwak")[i].addEventListener("mousedown", ruszaj, false);
+            }
+            
+
+
+       
+           
+            camera1 = new THREE.PerspectiveCamera(
+                45, //Field Of View (FOV) 
+                this.innerWidth / this.innerHeight, // proporcje widoku
+                0.1, //min renderowana odległość
+                10000 //max renderowana odległość
+                );
+            camera2 = new THREE.PerspectiveCamera(
+              45, //Field Of View (FOV) 
+              this.innerWidth / this.innerHeight, // proporcje widoku
+              0.1, //min renderowana odległość
+              10000 //max renderowana odległość
+              );
+
+
+            var renderer = new THREE.WebGLRenderer();
+            renderer.autoClear = false;
+            renderer.setClearColor(0x000000);
+            renderer.setSize(this.innerWidth, this.innerHeight);
+
+            //--------------------------------------------------------------------
+
+            
+            var axis = new THREE.AxisHelper(100);
+            scene.add(axis);
+
+            var materialek = new THREE.MeshPhongMaterial({side: THREE.DoubleSide, map: THREE.ImageUtils.loadTexture('mats/brick.png')});
+            
+          var geom = new THREE.PlaneBufferGeometry(1024, 1024);
+          mesh = new THREE.Mesh(geom, materialek);
+          mesh.rotateX(Math.PI/2);
+          mesh.material.map.repeat.set(8, 8); 
+          mesh.material.map.wrapS = mesh.material.map.wrapT = THREE.RepeatWrapping; 
+          scene.add(mesh);
+          var lajt = new THREE.AmbientLight(0x404040);
+          scene.add(lajt);
+          
+          var loader = new THREE.JSONLoader();
+          loader.load('mats/model/tris.js', function (geometry, mat) {
+              geometry.computeMorphNormals();
+
+ 
+              matNew = new THREE.MeshPhongMaterial(
+                         {
+                             map: THREE.ImageUtils.loadTexture ("mats/model/ctf_r.png"),
+                             morphTargets: true, 
+                             morphNormals: true, 
+                             specular: 0xffffff,
+                             shininess: 60,
+                             shading: THREE.SmoothShading,
+                             vertexColors: THREE.FaceColors
+                         });
+              
+
+       
+              meshModel = new THREE.MorphAnimMesh(geometry, matNew );
+              meshModel.name = "name";
+             
+              meshModel.position.y = 25; 
+              
+
+              //
+
+              scene.add(meshModel);
+              var box = new THREE.Box3().setFromObject(meshModel);
+   
+
+              
+              
+         
+              meshModel.parseAnimations();
+                  for (var key in meshModel.geometry.animations) {
+
+                      if (key === 'length' || !meshModel.geometry.animations.hasOwnProperty(key)) continue;
+
+                      tablica.push(key)
+                      console.log(key)
+                      
+                      var e = document.createElement("div");
+                      e.setAttribute("id", key);
+                      e.innerHTML = key;
+                      e.addEventListener("mousedown", clickAnimation, false);
+                      
+                      document.getElementById("lewy").appendChild(e);
+                  }
+
+
+
+
+                  meshModel.playAnimation(tablica[1], 5);
+             
+              
+
+             
+              
+          });
+   
+            console.log(JSON.stringify(scene.children.length));
+            document.getElementById("mainDiv").appendChild(renderer.domElement);
+
+            camera1.position.x = -200;
+            camera1.position.y = 200;
+            camera1.position.z = -200;
+            camera1.lookAt(scene.position);
+            animateScene();
+            
+            function animateScene() {
+                
+
+                
+                var delta = clock.getDelta();
+                if(meshModel != ""){
+
+                    
+                    if (tab[4] == 1) {
+                        //lewo 
+                        meshModel.rotation.y -= 0.03;
+                        meshModel.updateAnimation(delta * 1000)
+                    } if (tab[5] == 1) {
+                        //prawo
+                        meshModel.translateX(-2)
+                        meshModel.updateAnimation(delta * 1000)
+                    } if (tab[6] == 1) {
+                        
+                        meshModel.rotation.y += 0.03;
+
+                        //gora
+                    } if (tab[7] == 1) {
+                        //dol
+                        meshModel.translateX(2)
+                    }
+                    
+                    for (var i = 0; i < tblKlon.length; i++) { 
+                    if (meshModel.position.distanceTo(tblKlon[i].position) <8) {
+                        tblKlon[i].material = matel;
+                        console.log("kolizja");
+
+                    }
+                    }
+                }
+                if (tablicaKlon != null) {
+                    for(var j = 0; j < tablicaKlon.length; j++){
+                    for (var i = 0; i < tablicaKlon[j].poj.children.length; ++i) {
+                        tablicaKlon[j].poj.children[i].updateAnimation(delta * 1000);
+                    }
+                                                
+                    }
+                }
+               
+                var angle = 0.1;
+                
+                    if (tab[2] == 1) {
+                        //lewo 
+                        var x = camera1.position.x * Math.cos(angle) - camera1.position.z * Math.sin(angle);
+
+                        var z = camera1.position.x * Math.sin(angle) + camera1.position.z * Math.cos(angle);
+                        camera1.position.x = x;
+                        camera1.position.z = z;
+
+                    } if (tab[3] == 1) {
+                        //prawo
+                        var x = camera1.position.x * Math.cos(-angle) - camera1.position.z * Math.sin(-angle);
+
+                        var z = camera1.position.x * Math.sin(-angle) + camera1.position.z * Math.cos(-angle);
+                        camera1.position.x = x;
+                        camera1.position.z = z;
+
+                    } if (tab[0] == 1) {
+                        camera1.position.y += 10;
+
+                        //gora
+                    } if (tab[1] == 1) {
+                        //dol
+                        camera1.position.y -= 10;
+                    }
+                
+
+                if (camNew) {
+                    camera1.aspect = this.innerWidth/2 / this.innerHeight; 
+                    camera2.aspect = this.innerWidth / 2 / this.innerHeight;
+                    camera1.updateProjectionMatrix();
+                    camera2.updateProjectionMatrix();
+                    // dla kamery 1
+                    renderer.setViewport(0, 0, this.innerWidth / 2, this.innerHeight / 2);
+                    renderer.render(scene, camera1);
+                    //dla kamery 2
+                    renderer.setViewport(this.innerWidth / 2, 0, this.innerWidth / 2, this.innerHeight / 2);
+                    camera2.lookAt(new THREE.Vector3(0, 0, 0));
+                    var camVect = new THREE.Vector3(100, 0, 0);
+
+                    
+
+      var camPos = camVect.applyMatrix4(meshModel.matrixWorld);
+                    
+                    camera2.position.x = camPos.x;
+                    camera2.position.y = camPos.y;
+                    camera2.position.z = camPos.z;
+
+                    camera2.lookAt(meshModel.position);
+                    renderer.render(scene, camera2);
+                } else {
+                    camera1.aspect = this.innerWidth / this.innerHeight;
+                    camera1.updateProjectionMatrix();
+                    camera1.lookAt(new THREE.Vector3(0, 0, 0));
+                    renderer.setViewport(0, 0, this.innerWidth , this.innerHeight );
+                    renderer.render(scene, camera1);
+                }
+
+
+                requestAnimationFrame(animateScene);
+
+               
+            };
+          
+            document.addEventListener("keydown", onKeyDown, false); 
+            document.addEventListener("keyup", onKeyUp, false); 
+
+           
+
+            function onKeyDown(event) {
+
+                var keyCode = event.which; 
+
+                console.log(keyCode);
+               
+                    switch (keyCode) {
+
+                        case 65:
+                            tab[2] = 1;
+                            //a
+                            break;
+                        case 87:
+                            tab[0] = 1;
+                            //w
+                            break;
+                        case 83:
+                            tab[1] = 1;
+                            //s
+                            break;
+                        case 68:
+                            tab[3] = 1;
+                            //d
+                            break;
+                        case 37:
+                            tab[4] = 1;
+                           
+                            //lewo
+                            break;
+                        case 38:
+                            tab[5] = 1;
+                           
+                            //gora
+                            break;
+                        case 39:
+                            tab[6] = 1;
+                            //prawo
+                            break;
+
+                        case 40:
+                            tab[7] = 1;
+                            //dol
+                            break;
+
+                        case 70:
+                            if (!camNew) {
+                                camNew = true;
+                            } else
+                                camNew = false;
+                            break;
+                    }
+
+                
+
+            }
+            function onKeyUp(event) {
+                var keyCode = event.which; // kod klawisza
+               
+                    switch (keyCode) {
+
+                        case 65:
+                            tab[2] = 0;
+                            //a
+                            break;
+                        case 87:
+                            tab[0] = 0;
+                            //w
+                            break;
+                        case 83:
+                            tab[1] = 0;
+                            //s
+                            break;
+                        case 68:
+                            tab[3] = 0;
+                            //d
+                            break;
+                        case 37:
+                            tab[4] = 0;
+
+                            //lewo
+                            break;
+                        case 38:
+                            tab[5] = 0;
+
+                            //gora
+                            break;
+                        case 39:
+                            tab[6] = 0;
+
+                            //prawo
+                            break;
+
+                        case 40:
+                            tab[7] = 0;
+
+                            //dol
+                            break;
+
+                    }
+                    
+           
+               
+
+            }
+            
+
+            var raycaster = new THREE.Raycaster(); // obiekt symulujący "rzucanie" promieni
+            var mouseVector = new THREE.Vector2() // wektor (x,y) wykorzystany bedzie do określenie pozycji myszy na ekranie
+            function clickAnimation(e) {
+                console.log(e);
+                
+                meshModel.playAnimation(tablica[tablica.indexOf(e.target.id)], 5);
+            }
+            document.addEventListener("mousedown", onMouseDown, false);
+            document.getElementById("dodajKl").addEventListener("click", dodajKlony, false);
+            document.getElementById("usunKl").addEventListener("click", usunKlony, false);
+            document.getElementById("dodajSw").addEventListener("click", dodajSwiatlo, false);
+            function onMouseDown(event) {
+                //pozycja myszy zostaje przeliczona na wartości 0-1, wymagane przez raycaster
+
+                mouseVector.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouseVector.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+
+                // szukamy punktów wspólnych "promienia" i obiektu 3D 
+
+                raycaster.setFromCamera(mouseVector, camera1);
+
+                //intersects - tablica obiektów w które "trafia" nasz "promień" wysyłany z kamery
+
+                var intersects = raycaster.intersectObjects(scene.children);
+
+                
+
+                if (intersects.length > 0) {
+
+                    // zerowy czyli najbliższy kamery jest tek którego potrzebujemy
+                    obj = intersects[0].object;
+
+                }
+
+
+
+            }
+
+            //funkcja usuwająca klony
+            function usunKlony() {
+                if (liczKl != 0) {
+                    
+                    scene.remove(tablicaKlon[--liczKl].poj);
+                    tablicaKlon.splice(liczKl, 1);
+                }
+            }
+            //funkcja dodająca klony
+            function dodajKlony() {
+                
+                tablicaKlon.push({ poj: new THREE.Object3D});
+                var dlug = tablicaKlon.length;
+                console.log(dlug);
+                var ile = liczKl + 3;
+                for (var i = 0; i < ile; i++) {
+                    for (var j = 0; j < ile; j++) {
+                        if (i == 0 || j == 0 || i == ile - 1 || j == ile - 1) {
+                            var klon = meshModel.clone();
+                            klon.playAnimation(tablica[13], 5);
+                            klon.position.x =((i - (dlug / 2) -0.5) * 50);
+                            klon.position.z = ((j - (dlug / 2) -0.5) * 50);
+                            tablicaKlon[liczKl].poj.add(klon);
+                            tblKlon.push(klon);
+                            console.log("dodal")
+                        }
+                    }
+
+
+                }
+                scene.add(tablicaKlon[liczKl].poj);
+                liczKl++;
+            }
+            function ruszaj(e) {
+                el = document.getElementById(e.target.id);
+                console.log(e.target.id);
+                moving = true;
+                poczXClick = e.clientX;
+                poczYClick = e.clientY;
+                rect = el.getBoundingClientRect();
+                console.log(rect.left);
+            }
+            function parentMove(f) {
+                if (moving) {
+                    console.log(el.id);
+                    var poczLef = rect.left;
+                    console.log("poczLef" + poczLef + " poczXClick" + poczXClick+"clientX" + f.clientX);
+                    var zmianaX = parseInt(f.clientX + poczLef - poczXClick, 10);
+                    wart = poczLef + zmianaX;
+                    console.log(wart)
+                    if(light != ""){
+                    if (el.id == "x")
+                        light.position.x = wart;
+                    else if (el.id == "y")
+                        light.position.y = wart;
+                    }
+                    el.style.left = zmianaX + "px";
+                    
+                }
+            }
+            function dodajSwiatlo() {
+                light = new MyLight(0xff0000, 10, 9000000, 3.14 / 8).getLight();
+               
+                scene.add(light);
+                matNew.needsUpdate = true;
+                materialek.needsUpdate = true;
+
+            }
+        }
+        
+
+    </script>
+</head>
+<body>
+    <div id="mainDiv" style="z-index: 10;"></div>
+    <div id="lewy" class="lewy">
+        <div style="position: absolute; bottom: 20px;">
+            <input type="button" value="dodaj klony" id="dodajKl"/>
+            <input type="button" value="usuń klony" id="usunKl" />
+            <input type="button" value="dodaj Swiatlo" id="dodajSw" />
+        </div>
+        <div id="suwaki" style="position: relative;  min-height: 100px; min-width: 200px;">
+            <div class="suwak">
+                <div id="red">R</div>
+            </div>
+            <div class="suwak">
+                <div id="green">G</div>
+            </div>
+            <div class="suwak">
+                <div id="blue">B</div>
+            </div>
+            <div class="suwak">
+                <div id="x">X</div>
+            </div>
+            <div class="suwak">
+                <div id="y">Y</div>
+            </div>
+            <div class="suwak">
+                <div id="lightPow">Z</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
